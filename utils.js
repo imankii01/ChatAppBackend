@@ -17,7 +17,7 @@ const sendOTP = (email) => {
     const otp = randomstring.generate({ length: 6, charset: 'numeric' });
     otpStore[email.toLowerCase()] = otp;
     const mailOptions = {
-      from: '21cs34@lingayasvidyapeeth.edu.in',
+      from: 'GupChup <21cs34@lingayasvidyapeeth.edu.in>',
       to: email,
       subject: 'GupChup - OTP Verification for Sign Up',
       html: `
@@ -41,6 +41,7 @@ const sendOTP = (email) => {
         </div>
       `,
     };
+    
     
 
     transporter.sendMail(mailOptions, (error) => {

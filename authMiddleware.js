@@ -15,7 +15,7 @@ const authenticateUser = (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Unauthorized: Invalid token' });
     }
 
-    req.user = decoded;
+    req.email = decoded.email;
     next();
   });
 };

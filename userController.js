@@ -3,18 +3,54 @@ const { v4: uuidv4 } = require('uuid');
 const User = require('./user');
 
 const saveUserDetails = async (userData) => {
+  console.log("userData", userData);
   const { email, name, phoneNumber, age, address } = userData;
-  const user_id = uuidv4();
-  const user = new User({ email, name, phoneNumber, age, address, user_id });
 
-  await user.validate();
-  const savedUser = await user.save();
+  try {
+    const existingUser = await User.findOne({ email });
 
-  return { user_id: savedUser.user_id };
+    if (existingUser) {
+      console.log(`User with email ${email} already exists. Not saving the data.`);
+      return existingUser;
+    }
+
+    // Define the user schema
+    const userSchema = new User({
+      email,
+      name,
+      phoneNumber,
+      age,
+      address
+    });
+
+    // Validate the user data against the schema
+    await userSchema.validate();
+
+    // Generate a unique user_id
+    const user_id = uuidv4();
+    console.log("user_id", user_id);
+
+    // Create a new user instance with the generated user_id
+    const user = new User({ email, name, phoneNumber, age, address, user_id });
+
+    // Save the user to the database
+    const savedUser = await user.save();
+
+    return { user_id: savedUser.user_id };
+  } catch (error) {
+    console.error("Error saving user:", error);
+    return null; // Return null if there's an error saving the user
+  }
 };
 
 const getUserDetails = async (user_id) => {
+  console.log("user_id",user_id)
   try {
+    // Validate user_id format
+    if (!user_id || typeof user_id !== 'string' || user_id.trim() === '') {
+      throw new Error('Invalid user_id');
+    }
+
     const user = await User.findOne({ user_id });
 
     return user
@@ -25,6 +61,8 @@ const getUserDetails = async (user_id) => {
     return { success: false, error: 'Internal Server Error' };
   }
 };
+
+
 
 const updateUserDetails = async (user_id, userData) => {
   try {
