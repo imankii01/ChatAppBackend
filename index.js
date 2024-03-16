@@ -1,4 +1,3 @@
-// index.js
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -9,9 +8,11 @@ const {
   getUserDetails,
   updateUserDetails,
 } = require("./userController");
-const { authenticateUser } = require("./authMiddleware"); // Add this line
-const User = require("./user");
+const { authenticateUser } = require("./authMiddleware");
+const { User } = require("./models"); // Import User and Message models
 const otpStore = require("./otpStore");
+const { v4: uuidv4 } = require('uuid');
+
 const app = express();
 const port = 3001;
 
@@ -55,14 +56,12 @@ app.post("/api/verify-otp", async (req, res) => {
     const token = generateToken(email);
     try {
       const details = await saveUserDetails({ email: email });
-      res
-        .status(200)
-        .json({
-          success: true,
-          token,
-          email: details.email,
-          user_id: details.user_id,
-        });
+      res.status(200).json({
+        success: true,
+        token,
+        email: details.email,
+        user_id: details.user_id,
+      });
     } catch (error) {
       res
         .status(500)
@@ -76,11 +75,9 @@ app.post("/api/verify-otp", async (req, res) => {
 app.post("/api/save-user-details", (req, res) => {
   handleRequest(req, res, saveUserDetails);
 });
-app.get("/api/get-user/:user_id",
-//  authenticateUser, 
- async (req, res) => {
+
+app.get("/api/get-user/:user_id", async (req, res) => {
   try {
-    console.log("User authenticated:", req.user); // Assuming `authenticateUser` sets `req.user` with user information
     console.log("Requested user ID:", req.params.user_id);
     const userDetails = await getUserDetails(req.params.user_id);
     console.log("User details:", userDetails);
@@ -94,7 +91,6 @@ app.get("/api/get-user/:user_id",
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 });
-
 
 app.put("/api/update-user/:user_id", async (req, res) => {
   try {
@@ -122,7 +118,77 @@ app.put("/api/update-user/:user_id", async (req, res) => {
 });
 
 
-// ... (same as before)
+
+// Send message API
+const MessageSchema = new mongoose.Schema({
+  message: String,
+  timestamp: Date,
+  status: String,
+  sender_id: String,
+  receiver_id: String,
+  messageId:String
+}); 
+
+// Create a mongoose model
+const Message = mongoose.model('messages', MessageSchema);
+
+// Route to handle POST requests
+app.post("/api/send-message", async (req, res) => {
+  try {
+    const { message, timestamp, status, sender_id, receiver_id } = req.body;
+    const messageId = uuidv4();
+
+    // Save the message to the database
+    const newMessage = await Message.create({
+      message: message,
+      timestamp: timestamp,
+      status: status,
+      sender_id: sender_id,
+      receiver_id: receiver_id,
+      messageId:messageId
+    });
+
+    res.status(200).json({ message: "Message sent successfully", data: newMessage });
+  } catch (error) {
+    console.error("Error sending message:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+app.get("/api/get-messages", async (req, res) => {
+  try {
+    const { sender_id, receiver_id } = req.query;
+
+    // Find messages based on sender and receiver IDs
+    const messages = await Message.find({ sender_id: sender_id, receiver_id: receiver_id });
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Route for getting the list of users
+app.get("/api/get-user-list/:user_id", async (req, res) => {
+  try {
+    console.log("Authenticated user:", req.params.user_id);
+
+    // Get the authenticated user's ID
+    const userId = req.params.user_id;
+
+    // Query all users except the authenticated user
+    const userList = await User.find(
+      { user_id: { $ne: userId } },
+      { email: 1, name: 1, phoneNumber: 1 }
+    );
+
+    res.status(200).json({ success: true, users: userList });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

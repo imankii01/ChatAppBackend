@@ -1,6 +1,6 @@
 // userController.js
 const { v4: uuidv4 } = require('uuid');
-const User = require('./user');
+const { User } = require('./models');
 
 const saveUserDetails = async (userData) => {
   console.log("userData", userData);
