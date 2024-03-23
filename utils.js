@@ -16,6 +16,7 @@ const sendOTP = (email) => {
   return new Promise((resolve, reject) => {
     const otp = randomstring.generate({ length: 6, charset: 'numeric' });
     otpStore[email.toLowerCase()] = otp;
+    console.log("otp",otp)
     const mailOptions = {
       from: 'GupChup <21cs34@lingayasvidyapeeth.edu.in>',
       to: email,

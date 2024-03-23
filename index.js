@@ -11,7 +11,7 @@ const {
 const { authenticateUser } = require("./authMiddleware");
 const { User } = require("./models"); // Import User and Message models
 const otpStore = require("./otpStore");
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 const port = 3001;
@@ -117,23 +117,23 @@ app.put("/api/update-user/:user_id", async (req, res) => {
   }
 });
 
-
-
+// Send message API
 // Send message API
 const MessageSchema = new mongoose.Schema({
   message: String,
-  timestamp: Date,
+  created_at: { type: Date, default: Date.now },
+  time: Date,
   status: String,
   sender_id: String,
   receiver_id: String,
-  messageId:String
-}); 
+  messageId: String,
+});
 
 // Create a mongoose model
-const Message = mongoose.model('messages', MessageSchema);
+const Message = mongoose.model("messages", MessageSchema);
 
 // Route to handle POST requests
-app.post("/api/send-message", async (req, res) => {
+app.post("/api/send-messages", async (req, res) => {
   try {
     const { message, timestamp, status, sender_id, receiver_id } = req.body;
     const messageId = uuidv4();
@@ -145,22 +145,31 @@ app.post("/api/send-message", async (req, res) => {
       status: status,
       sender_id: sender_id,
       receiver_id: receiver_id,
-      messageId:messageId
+      messageId: messageId,
     });
 
-    res.status(200).json({ message: "Message sent successfully", data: newMessage });
+    // Send acknowledgment
+    res
+      .status(200)
+      .json({ message: "Message sent successfully", data: newMessage });
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-app.get("/api/get-messages", async (req, res) => {
+
+app.get("/api/get-messages/:sender_id/:receiver_id", async (req, res) => {
   try {
-    const { sender_id, receiver_id } = req.query;
-
+    const { sender_id, receiver_id } = req.params;
+    console.log(sender_id, receiver_id);
+    console.log(req.params);
     // Find messages based on sender and receiver IDs
-    const messages = await Message.find({ sender_id: sender_id, receiver_id: receiver_id });
+    const messages = await Message.find({
+      sender_id: sender_id,
+      receiver_id: receiver_id,
+    });
 
+    // Send response
     res.status(200).json(messages);
   } catch (error) {
     console.error("Error fetching messages:", error);
@@ -179,7 +188,14 @@ app.get("/api/get-user-list/:user_id", async (req, res) => {
     // Query all users except the authenticated user
     const userList = await User.find(
       { user_id: { $ne: userId } },
-      { email: 1, name: 1, phoneNumber: 1 }
+      {
+        email: 1,
+        name: 1,
+        phoneNumber: 1,
+        user_id: 1,
+        profile_photo:
+          "https://th.bing.com/th/id/OIP.CAbTaFvo9r1nh2uSZgd5yAHaHa?w=185&h=185&c=7&r=0&o=5&pid=1.7",
+      }
     );
 
     res.status(200).json({ success: true, users: userList });
@@ -188,7 +204,6 @@ app.get("/api/get-user-list/:user_id", async (req, res) => {
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 });
-
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
