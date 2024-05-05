@@ -4,6 +4,7 @@ const cors = require("cors");
 const mongodbConnection = require("./src/db/dbConnection");
 const { userRouter } = require("./src/routes/user/user.router");
 const { publicRouter } = require("./src/routes/public/public.router");
+const { messageRouter } = require("./src/routes/message/message.router");
 
 const app = express();
 const PORT = `${process.env.PORT}` || 8000;
@@ -15,6 +16,7 @@ app.use(bodyParser.json());
 // Routes
 
 app.use("/auth", userRouter);
+app.use("/message", messageRouter);
 app.use("/public", publicRouter);
 
 // Error handling middleware
